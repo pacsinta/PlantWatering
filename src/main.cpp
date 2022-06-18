@@ -10,11 +10,12 @@
 #define Led 2
 #define motor_pin 25
 #define timeServer "http://worldtimeapi.org/api/timezone/Europe/Budapest"
-#define refreshTime 60*1000  // in milliseconds
-#define controlServer "http://192.168.68.127:1000/"
+#define sleepTime 10*60*1000  // in milliseconds
 
 
 AsyncWebServer server(80);
+
+bool sleepEnable = false;
 
 void helloBlink(){
   for (size_t i = 0; i < 3; i++)
@@ -44,6 +45,8 @@ void setup() {
   }
   digitalWrite(Led, LOW);
 
+  esp_sleep_enable_timer_wakeup(sleepTime);
+
   server.on("/", HTTP_GET, [](AsyncWebServerRequest *request) {
     request->send(200, "text/plain", "Hello, world!");
   });
@@ -66,10 +69,20 @@ void setup() {
     }
   });
 
+  server.on("/sleep", HTTP_GET, [](AsyncWebServerRequest *request){
+    sleepEnable = true;
+    request->send(200, "text/plain", "Sleep mode enabled");
+  });
+
   AsyncElegantOTA.begin(&server);
   server.begin();
 }
 
 
 void loop() {
+  if (sleepEnable) {
+    sleepEnable = false;
+    esp_deep_sleep_start();
+  }
+  delay(5000);
 }
